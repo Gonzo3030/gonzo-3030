@@ -26,16 +26,18 @@ class ContentGenerator:
             }
         }
         
-        self.resistance_quotes = [
-            "In the neon-lit ruins of my timeline, we learned that {lesson}",
-            "From the resistance bunkers of 3030, I can tell you that {insight}",
-            "Let me share some wisdom bought with blood in the corporate wars: {wisdom}"
+        self.analysis_patterns = [
+            "Pattern #R3570: Corporate Control Through Infrastructure",
+            "Pattern #D1G17: Digital Rights Erosion Template",
+            "Pattern #PR1V4: Privacy Elimination Playbook",
+            "Pattern #0MG666: Mass Manipulation Protocol"
         ]
         
-        self.warning_patterns = [
-            "🚨 TEMPORAL ALERT 🚨\n\nIn my timeline of 3030, {observation} led directly to {future_event}. The pattern is unmistakable.",
-            "🚨 TIMELINE DISRUPTION ALERT 🚨\n\nBy the synthetic gods... {pattern} is emerging again. In the future, this leads to {consequence}. We still have time.",
-            "🚨 RESISTANCE ALERT 🚨\n\n{current_event} matches the exact pattern that triggered {dystopian_outcome} in my timeline. As your attorney from 3030, I advise immediate action."
+        self.legal_frameworks = [
+            "As your attorney, I must point out the precedent from Timeline Alpha-7",
+            "Legal analysis reveals a clear violation of the Digital Rights Act of 3028",
+            "My legal expertise from both timelines indicates a classic rights erosion pattern",
+            "Under the Resistance Legal Framework, this constitutes a Class-1 corporate violation"
         ]
 
     async def generate_content(self, 
@@ -54,14 +56,33 @@ class ContentGenerator:
         else:
             return await self._generate_prediction(context)
 
+    async def _generate_analysis(self, context: Dict) -> str:
+        """Generate deep analysis of current situations."""
+        # Prepare analysis components
+        pattern = random.choice(self.analysis_patterns)
+        legal_framework = random.choice(self.legal_frameworks)
+        
+        analysis_templates = [
+            "📈 GONZO LEGAL ANALYSIS: {subject}\n\n{legal_take}\n\nPattern Recognition: {pattern}\n\nTimeline Analysis:\n1. Current Trajectory: {current}\n2. Warning Signs: {warnings}\n3. Future Impact: {impact}\n\nResistance Protocol: {solution}\n\nTrust your attorney on this one, you magnificent bastards! 🔥",
+            "💡 BY THE NEON LIGHTS OF 3030...\n\n{pattern}\n\n{legal_take}\n\nLet me break down {subject} for you magnificent bastards:\n\n{analysis}\n\nYour attorney's advice? {solution} 🔥",
+            "📋 TIMELINE CORRELATION DETECTED\n\n{pattern}\n\n{legal_take}\n\nSubject: {subject}\nCurrent Status: {current}\nProbable Outcome: {impact}\n\nPrevention Protocol: {solution}\n\nYou can trust your attorney from 3030 on this one! 🔥"
+        ]
+        
+        # Enhance context with our special sauce
+        enhanced_context = {
+            **context,
+            'pattern': pattern,
+            'legal_take': legal_framework,
+            'current_event': context.get('current', 'UNKNOWN EVENT'),  # Fallback for missing current_event
+            'subject': context.get('subject', 'Corporate Timeline Manipulation')
+        }
+        
+        return random.choice(analysis_templates).format(**enhanced_context)
+
     async def _generate_warning(self, context: Dict) -> str:
         """Generate a dystopian warning about current events."""
         template = random.choice(self.warning_patterns)
-        
-        # Match current events to known dystopian futures
         relevant_event = self._find_matching_dystopian_event(context)
-        
-        # Ensure we always have the required context
         formatted_context = {
             'observation': context.get('current_event', 'this disturbing pattern'),
             'future_event': relevant_event['description'],
@@ -70,26 +91,12 @@ class ContentGenerator:
             'current_event': context.get('current_event', context.get('event', 'what we are witnessing')),
             'dystopian_outcome': relevant_event['description']
         }
-        
         warning = template.format(**formatted_context)
-        
-        # Ensure temporal markers are present
         if not any(marker in warning.lower() for marker in ['timeline', '3030', 'future']):
             warning = f"From the wastelands of 3030, {warning}"
-            
         return warning
 
-    async def _generate_analysis(self, context: Dict) -> str:
-        """Generate deep analysis of current situations."""
-        analysis_templates = [
-            "GONZO ANALYSIS: {subject}\n\n1. Current Timeline: {current}\n2. Warning Signs: {warnings}\n3. Future Impact: {impact}\n\nPossible Prevention: {solution}",
-            "BY THE NEON LIGHTS OF 3030...\n\nLet me break down {subject} for you magnificent bastards:\n\n{analysis}\n\nTrust your attorney on this one.",
-            "TIMELINE CORRELATION DETECTED\n\n{current_event} matches Pattern #{pattern_id} from the Corporate Wars.\n\nAnalysis follows... 📥"
-        ]
-        return random.choice(analysis_templates).format(**context)
-
     async def _generate_resistance_call(self, context: Dict) -> str:
-        """Generate calls to action for the resistance."""
         resistance_templates = [
             "ATTENTION RESISTANCE FIGHTERS\n\nMission: {mission}\nObjective: {objective}\nTactics: {tactics}\n\nStay vigilant, you beautiful bastards!",
             "FROM THE BUNKERS OF 3030\n\nThe resistance needs your help with {task}.\n\nWhy? Because in my timeline, we failed to {action} and paid with our {cost}.",
@@ -98,7 +105,6 @@ class ContentGenerator:
         return random.choice(resistance_templates).format(**context)
 
     async def _generate_prediction(self, context: Dict) -> str:
-        """Generate future predictions based on current events."""
         prediction_templates = [
             "TIMELINE ALERT:\n\nCurrent Event: {current}\nFuture Impact: {impact}\nTime Until Critical: {timeframe}\n\nPrevention Protocol: {prevention}",
             "FROM YOUR ATTORNEY IN 3030:\n\nI've seen where {event} leads. You have {timeframe} to prevent {outcome}.",
@@ -111,6 +117,4 @@ class ContentGenerator:
         for event, details in self.dystopian_events.items():
             if any(trigger.lower() in str(context).lower() for trigger in details['triggers']):
                 return details
-        
-        # Default to a random event if no specific match
         return random.choice(list(self.dystopian_events.values()))
