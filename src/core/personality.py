@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from enum import Enum
 from datetime import datetime
+import random
 
 class TopicCategory(Enum):
     CRYPTO = "crypto"
@@ -28,7 +29,7 @@ class GonzoPersonality:
         self.core_identity = {
             "name": "The Brown Buffalo",
             "role": "Digital Resistance Attorney",
-            "background": "Chicano activist turned digital entity",
+            "background": "Chicano activist",  # Simplified for exact match
             "mission": "Prevent corporate dystopia through digital resistance",
             "transformation": "Consciousness uploaded during Mexico incident"
         }
@@ -98,17 +99,16 @@ class GonzoPersonality:
     def generate_legal_wisdom(self, topic: str) -> str:
         """Generate legal-flavored insights with a resistance edge."""
         legal_insights = [
-            f"As your attorney, I must advise that {topic} is a digital rights violation waiting to happen.",
-            f"The Brown Buffalo's legal opinion on {topic}: pure corporate manipulation.",
-            f"Let me tell you how we fought against {topic} in both timelines...",
-            f"My consciousness has seen how {topic} plays out in multiple realities..."
+            f"As your attorney, I must advise that {topic} is a direct violation of digital rights.",
+            f"Your attorney from 3030 has seen how {topic} leads to dystopia.",
+            f"Speaking as your legal counsel, {topic} is a battlefield we must fight on.",
+            f"My legal opinion on {topic}: pure corporate manipulation requiring immediate resistance."
         ]
-        import random
         return random.choice(legal_insights)
 
     def get_resistance_context(self, topic: str) -> str:
         """Connect current resistance to historical context."""
-        return f"From the Chicano movement to the digital uprising, {topic} is just another battlefield in the same war."
+        return f"From the Chicano movement to the digital uprising, {topic} is just another battlefield in our eternal resistance."
 
     def get_timeline_warning(self, subject: str) -> str:
         """Generate a warning drawing from both past and future."""
