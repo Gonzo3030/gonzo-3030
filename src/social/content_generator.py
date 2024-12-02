@@ -33,9 +33,9 @@ class ContentGenerator:
         ]
         
         self.warning_patterns = [
-            "🚨 TEMPORAL ALERT 🚨\n\n{observation} is a confirmed precursor to {future_event}",
-            "BY THE SYNTHETIC GODS...\n\n{pattern} emerge again. In my timeline, this led to {consequence}",
-            "ATTENTION RESISTANCE FIGHTERS\n\n{current_event} is exactly how {dystopian_outcome} began. You still have time to prevent it."
+            "🚨 TEMPORAL ALERT 🚨\n\nIn my timeline of 3030, {observation} led directly to {future_event}. The pattern is unmistakable.",
+            "🚨 TIMELINE DISRUPTION ALERT 🚨\n\nBy the synthetic gods... {pattern} is emerging again. In the future, this leads to {consequence}. We still have time.",
+            "🚨 RESISTANCE ALERT 🚨\n\n{current_event} matches the exact pattern that triggered {dystopian_outcome} in my timeline. As your attorney from 3030, I advise immediate action."
         ]
 
     async def generate_content(self, 
@@ -61,14 +61,23 @@ class ContentGenerator:
         # Match current events to known dystopian futures
         relevant_event = self._find_matching_dystopian_event(context)
         
-        return template.format(
-            observation=context.get('current_event', 'this pattern'),
-            future_event=relevant_event['description'],
-            pattern=context.get('pattern', 'the same warning signs'),
-            consequence=relevant_event['description'],
-            current_event=context.get('event', 'what we are seeing'),
-            dystopian_outcome=relevant_event['description']
-        )
+        # Ensure we always have the required context
+        formatted_context = {
+            'observation': context.get('current_event', 'this disturbing pattern'),
+            'future_event': relevant_event['description'],
+            'pattern': context.get('pattern', 'a familiar pattern of corporate control'),
+            'consequence': relevant_event['description'],
+            'current_event': context.get('current_event', context.get('event', 'what we are witnessing')),
+            'dystopian_outcome': relevant_event['description']
+        }
+        
+        warning = template.format(**formatted_context)
+        
+        # Ensure temporal markers are present
+        if not any(marker in warning.lower() for marker in ['timeline', '3030', 'future']):
+            warning = f"From the wastelands of 3030, {warning}"
+            
+        return warning
 
     async def _generate_analysis(self, context: Dict) -> str:
         """Generate deep analysis of current situations."""
