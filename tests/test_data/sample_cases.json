@@ -1,0 +1,24 @@
+{
+    "cases": [
+        {
+            "id": "CASE-001",
+            "title": "People vs MegaCorp AI",
+            "description": "Class action lawsuit regarding AI manipulation of public discourse",
+            "evidence": [
+                "internal_memo.pdf",
+                "algorithm_analysis.json",
+                "victim_testimonies.txt"
+            ]
+        },
+        {
+            "id": "CASE-002",
+            "title": "Digital Rights Foundation vs DataHarvest Inc",
+            "description": "Privacy violation case involving illegal data collection",
+            "evidence": [
+                "data_logs.csv",
+                "privacy_policy_violations.pdf",
+                "expert_testimony.md"
+            ]
+        }
+    ]
+}

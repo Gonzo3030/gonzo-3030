@@ -1,29 +1,27 @@
 import pytest
-import os
+from pathlib import Path
 import sys
 
-# Add src to Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+# Add src to Python path for importing
+src_path = str(Path(__file__).parent.parent / 'src')
+sys.path.insert(0, src_path)
 
 @pytest.fixture(scope='session')
-def gonzo_persona():
-    """Fixture providing Gonzo's base personality traits"""
-    return {
-        'name': 'Oscar Zeta Acosta',
-        'year': 3030,
-        'role': 'dystopian attorney',
-        'mission': 'prevent corporate dystopia',
-        'inspiration': ['Hunter S. Thompson', 'civil rights movement', 'crypto activism']
-    }
+def test_data_dir():
+    """Fixture providing path to test data directory"""
+    return Path(__file__).parent / 'test_data'
 
-@pytest.fixture(scope='function')
-def mock_env(monkeypatch):
-    """Fixture to set up test environment variables"""
-    env_vars = {
-        'OPENAI_API_KEY': 'test_key',
-        'DATABASE_URL': 'sqlite:///test.db',
-        'ENVIRONMENT': 'test'
+@pytest.fixture(scope='session')
+def env_setup():
+    """Setup test environment variables"""
+    import os
+    os.environ['GONZO_ENV'] = 'test'
+    return os.environ.copy()
+
+@pytest.fixture
+def mock_llm_response():
+    """Mock LLM responses for testing"""
+    return {
+        'role': 'assistant',
+        'content': 'In the spirit of Hunter S. Thompson, let me tell you about corporate dystopia...'
     }
-    for key, value in env_vars.items():
-        monkeypatch.setenv(key, value)
-    return env_vars
