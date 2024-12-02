@@ -13,6 +13,5 @@ setup(
         'hypothesis>=6.87.1',
         'factory-boy>=3.3.0',
         'pytest-xdist>=3.3.1',
-        'freezing>=2.4.0',
     ],
 )
