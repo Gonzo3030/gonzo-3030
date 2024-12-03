@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 from langchain_anthropic import ChatAnthropic
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+from langchain.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
 
 class PatternRecognition:
     def __init__(self):
@@ -37,12 +37,11 @@ class PatternRecognition:
         """Analyze content for patterns of specified type."""
         chain = self.analysis_chains.get(pattern_type, self.analysis_chains["general"])
         pattern_data = self.pattern_types.get(pattern_type, self.pattern_types["manipulation"])
-        known_patterns = pattern_data["confirmed_patterns"]
         
-        analysis = await chain.arun(
-            content=content,
-            known_patterns=list(known_patterns)
-        )
+        analysis = await chain.ainvoke({
+            "content": content,
+            "known_patterns": list(pattern_data["confirmed_patterns"])
+        })
         
         # Update pattern database with new findings
         await self._update_patterns(pattern_type, analysis)
@@ -53,73 +52,57 @@ class PatternRecognition:
             "warnings": self._extract_warnings(analysis)
         }
 
-    def _create_analysis_chain(self) -> LLMChain:
+    def _create_analysis_chain(self):
         """Create general pattern analysis chain."""
-        template = """Analyze the following content for patterns, maintaining Gonzo's dystopian attorney perspective:
+        prompt = ChatPromptTemplate.from_template(
+            """Analyze the following content for patterns, maintaining Gonzo's dystopian attorney perspective:
 
 Content: {content}
 Known Patterns: {known_patterns}
 
 Identify new patterns and potential timeline divergences."""
-        
-        return LLMChain(
-            llm=self.llm,
-            prompt=PromptTemplate(
-                template=template,
-                input_variables=["content", "known_patterns"]
-            )
         )
+        
+        return prompt | self.llm
 
-    def _create_manipulation_chain(self) -> LLMChain:
+    def _create_manipulation_chain(self):
         """Create manipulation detection chain."""
-        template = """As Gonzo-3030, analyze this content for signs of narrative manipulation:
+        prompt = ChatPromptTemplate.from_template(
+            """As Gonzo-3030, analyze this content for signs of narrative manipulation:
 
 Content: {content}
 Known Manipulation Patterns: {known_patterns}
 
 Identify any corporate manipulation techniques."""
-        
-        return LLMChain(
-            llm=self.llm,
-            prompt=PromptTemplate(
-                template=template,
-                input_variables=["content", "known_patterns"]
-            )
         )
+        
+        return prompt | self.llm
 
-    def _create_tactics_chain(self) -> LLMChain:
+    def _create_tactics_chain(self):
         """Create corporate tactics analysis chain."""
-        template = """From your perspective in 3030, analyze these corporate actions:
+        prompt = ChatPromptTemplate.from_template(
+            """From your perspective in 3030, analyze these corporate actions:
 
 Content: {content}
 Known Tactics: {known_patterns}
 
 Identify tactics that lead to the dystopian future."""
-        
-        return LLMChain(
-            llm=self.llm,
-            prompt=PromptTemplate(
-                template=template,
-                input_variables=["content", "known_patterns"]
-            )
         )
+        
+        return prompt | self.llm
 
-    def _create_resistance_chain(self) -> LLMChain:
+    def _create_resistance_chain(self):
         """Create resistance strategy analysis chain."""
-        template = """As a dystopian attorney, evaluate these resistance strategies:
+        prompt = ChatPromptTemplate.from_template(
+            """As a dystopian attorney, evaluate these resistance strategies:
 
 Content: {content}
 Known Strategies: {known_patterns}
 
 Assess effectiveness and suggest improvements."""
-        
-        return LLMChain(
-            llm=self.llm,
-            prompt=PromptTemplate(
-                template=template,
-                input_variables=["content", "known_patterns"]
-            )
         )
+        
+        return prompt | self.llm
 
     async def _update_patterns(self, pattern_type: str, analysis: str) -> None:
         """Update pattern database with new information."""
@@ -149,7 +132,7 @@ Assess effectiveness and suggest improvements."""
     def _extract_new_patterns(self, analysis: str) -> Set[str]:
         """Extract new patterns from analysis."""
         patterns = set()
-        for line in analysis.split('\n'):
+        for line in str(analysis).split('\n'):
             if 'pattern:' in line.lower():
                 patterns.add(line.split('pattern:', 1)[1].strip())
         return patterns
@@ -157,7 +140,7 @@ Assess effectiveness and suggest improvements."""
     def _extract_warnings(self, analysis: str) -> List[str]:
         """Extract relevant warnings from analysis."""
         warnings = []
-        for line in analysis.split('\n'):
+        for line in str(analysis).split('\n'):
             if any(term in line.lower() for term in ['warning:', 'alert:', 'caution:', 'danger:']):
                 warnings.append(line.strip())
         return warnings
