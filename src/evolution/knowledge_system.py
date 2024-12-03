@@ -1,15 +1,18 @@
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import asyncio
-from langchain_openai import OpenAIEmbeddings
+from openai import OpenAI
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory
 
 class KnowledgeSystem:
     def __init__(self):
+        # Initialize OpenAI client directly
+        self.client = OpenAI()
+        
         # Vector store for semantic search and pattern matching
         self.vector_store = Chroma(
-            embedding_function=OpenAIEmbeddings(),
+            embedding_function=self.client.embeddings,
             collection_name="gonzo_knowledge"
         )
         
@@ -38,9 +41,17 @@ class KnowledgeSystem:
                                    engagement_metrics: Dict) -> None:
         """Learn from each interaction and its outcomes."""
         # Store interaction in vector database for pattern matching
+        text = str(interaction)
+        response = self.client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=text
+        )
+        embedding = response.data[0].embedding
+        
         self.vector_store.add_texts(
-            texts=[str(interaction)],
-            metadatas=[{"timestamp": datetime.now().isoformat()}]
+            texts=[text],
+            metadatas=[{"timestamp": datetime.now().isoformat()}],
+            embeddings=[embedding]
         )
         
         # Update pattern recognition
@@ -56,15 +67,23 @@ class KnowledgeSystem:
                                    context: Dict,
                                    min_confidence: float = 0.3) -> Dict:
         """Retrieve relevant knowledge above confidence threshold."""
-        # Search vector store for relevant information
-        relevant_docs = self.vector_store.similarity_search(
-            str(context),
+        # Get embedding for query
+        text = str(context)
+        response = self.client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=text
+        )
+        query_embedding = response.data[0].embedding
+        
+        # Search vector store with embedding
+        docs_and_scores = self.vector_store.similarity_search_by_vector(
+            embedding=query_embedding,
             k=5  # Get top 5 relevant pieces of information
         )
         
         # Filter by confidence
         confident_knowledge = {}
-        for doc in relevant_docs:
+        for doc in docs_and_scores:
             doc_id = doc.metadata.get("id")
             if doc_id in self.confidence_scores["predictions"]:
                 if self.confidence_scores["predictions"][doc_id] >= min_confidence:
