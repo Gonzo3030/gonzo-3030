@@ -3,26 +3,34 @@ from datetime import datetime
 import asyncio
 from openai import OpenAI
 from langchain_chroma import Chroma
+from langchain.schema import Document
 from langchain.memory import ConversationBufferMemory
 
 class KnowledgeSystem:
     def __init__(self):
-        # Initialize OpenAI client and embeddings function
+        # Initialize OpenAI client
         self.client = OpenAI()
         
-        # Create a simple embeddings wrapper
+        # Create embeddings wrapper
         class SimpleEmbeddings:
             def __init__(self, client):
                 self.client = client
             
-            def embed_query(self, text):
+            def embed_query(self, text: str) -> List[float]:
                 response = self.client.embeddings.create(
                     model="text-embedding-ada-002",
                     input=text
                 )
                 return response.data[0].embedding
+            
+            def embed_documents(self, texts: List[str]) -> List[List[float]]:
+                response = self.client.embeddings.create(
+                    model="text-embedding-ada-002",
+                    input=texts
+                )
+                return [item.embedding for item in response.data]
         
-        # Vector store for semantic search and pattern matching
+        # Initialize vector store
         self.vector_store = Chroma(
             embedding_function=SimpleEmbeddings(self.client),
             collection_name="gonzo_knowledge"
@@ -53,20 +61,19 @@ class KnowledgeSystem:
                                    engagement_metrics: Dict) -> None:
         """Learn from each interaction and its outcomes."""
         try:
-            # Get embedding for text
-            text = str(interaction)
-            response = self.client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=text
+            # Create proper document
+            interaction_id = f"{datetime.now().isoformat()}_interaction"
+            doc = Document(
+                page_content=str(interaction),
+                metadata={
+                    "id": interaction_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "type": "interaction"
+                }
             )
-            embedding = response.data[0].embedding
             
             # Add to vector store
-            self.vector_store.add_documents(
-                documents=[text],
-                metadatas=[{"timestamp": datetime.now().isoformat()}],
-                embeddings=[embedding]
-            )
+            self.vector_store.add_documents([doc])
             
             # Update pattern recognition
             await self._update_patterns(interaction)
@@ -79,32 +86,29 @@ class KnowledgeSystem:
             
         except Exception as e:
             print(f"Error in learn_from_interaction: {str(e)}")
-            raise
-
+    
     async def get_relevant_knowledge(self, 
                                    context: Dict,
                                    min_confidence: float = 0.3) -> Dict:
         """Retrieve relevant knowledge above confidence threshold."""
         try:
-            # Get embedding for query
-            text = str(context)
-            embedding_response = self.client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=text
+            # Create search document
+            search_doc = Document(
+                page_content=str(context),
+                metadata={"type": "search"}
             )
-            query_embedding = embedding_response.data[0].embedding
             
-            # Search vector store with embedding
-            results = self.vector_store.similarity_search_by_vector(
-                embedding=query_embedding,
-                k=5  # Get top 5 relevant pieces of information
+            # Search vector store
+            results = self.vector_store.similarity_search(
+                search_doc.page_content,
+                k=5
             )
             
             # Filter by confidence
             confident_knowledge = {}
             for doc in results:
                 doc_id = doc.metadata.get("id")
-                if doc_id in self.confidence_scores["predictions"]:
+                if doc_id and doc_id in self.confidence_scores["predictions"]:
                     if self.confidence_scores["predictions"][doc_id] >= min_confidence:
                         confident_knowledge[doc_id] = doc.page_content
             
