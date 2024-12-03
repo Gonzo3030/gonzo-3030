@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import asyncio
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 
 class KnowledgeSystem:
@@ -20,10 +20,10 @@ class KnowledgeSystem:
         
         # Track evolving narratives and predictions
         self.observed_patterns = {
-            "corporate_tactics": Set(),
-            "manipulation_methods": Set(),
-            "resistance_strategies": Set(),
-            "successful_predictions": Set()
+            "corporate_tactics": set(),  # Changed Set() to set()
+            "manipulation_methods": set(),
+            "resistance_strategies": set(),
+            "successful_predictions": set()
         }
         
         # Knowledge confidence levels
