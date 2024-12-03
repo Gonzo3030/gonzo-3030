@@ -1,12 +1,12 @@
 import asyncio
 import os
-from src.core.orchestrator import Orchestrator
+from src.core.orchestrator import GonzoOrchestrator
 from src.social.x_integration import XIntegration
 from src.core.personality import GonzoPersonality
 
 class GonzoLauncher:
     def __init__(self):
-        self.orchestrator = Orchestrator()
+        self.orchestrator = GonzoOrchestrator()
         self.x_system = XIntegration()
         self.personality = GonzoPersonality()
         
@@ -23,7 +23,7 @@ class GonzoLauncher:
         
         try:
             # Initialize all systems
-            await self.orchestrator.initialize()
+            await self.orchestrator.process_input({"type": "system_init", "content": "Initializing Gonzo-3030 systems"})
             
             while True:
                 if self.x_system.safety_manager.is_operational():
@@ -32,19 +32,30 @@ class GonzoLauncher:
                     
                     if status['stats']['posts'] < self.x_system.engagement_system.daily_limits['standalone']:
                         # Generate and post content
-                        content = await self.orchestrator.generate_next_action()
-                        await self.x_system.post_content(content['type'], content['context'])
+                        content = await self.orchestrator.process_input({
+                            "type": "content_generation",
+                            "content": "Generate next social post"
+                        })
+                        
+                        await self.x_system.post_content(
+                            content_type=content.get('type', 'WARNING'),
+                            context=content
+                        )
                         
                         # Check for engagement opportunities
-                        engagement = await self.orchestrator.scan_for_engagement()
-                        if engagement:
+                        engagement = await self.orchestrator.process_input({
+                            "type": "engagement_scan",
+                            "content": "Scan for engagement opportunities"
+                        })
+                        
+                        if engagement.get('engagement_needed', False):
                             await self.x_system.handle_engagement(
                                 trigger_content=engagement['content'],
-                                priority=engagement['priority']
+                                priority=engagement.get('priority', 'MEDIUM')
                             )
                         
-                        # Dynamic wait based on priority
-                        wait_time = await self.orchestrator.calculate_next_action_delay()
+                        # Dynamic wait based on priority and context
+                        wait_time = engagement.get('next_check_delay', 3600)  # Default 1 hour
                         print(f"\n⏳ Waiting {wait_time//60} minutes until next action...")
                         await asyncio.sleep(wait_time)
                     else:
@@ -56,7 +67,7 @@ class GonzoLauncher:
                     
         except KeyboardInterrupt:
             print("\n🛑 Shutting down Gonzo-3030...")
-            await self.orchestrator.shutdown()
+            await self.orchestrator.process_input({"type": "system_shutdown", "content": "Emergency shutdown initiated"})
             
         except Exception as e:
             print(f"\n❌ Critical error: {str(e)}")
