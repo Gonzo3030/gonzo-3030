@@ -1,7 +1,8 @@
 import os
 import requests
 from requests_oauthlib import OAuth1
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import List, Dict
 from dotenv import load_dotenv
 
 class XAPIClient:
@@ -26,8 +27,47 @@ class XAPIClient:
         )
         
         self.base_url = 'https://api.twitter.com/2'
+        
+        # Store last mention ID for pagination
+        self.last_mention_id = None
     
-    def create_post(self, text: str) -> dict:
+    def get_mentions(self, since_minutes: int = 5) -> List[Dict]:
+        """Get recent mentions of the account"""
+        try:
+            # Calculate start time
+            start_time = (datetime.utcnow() - timedelta(minutes=since_minutes)).isoformat() + 'Z'
+            
+            # Build query parameters
+            params = {
+                'start_time': start_time,
+                'expansions': 'author_id,referenced_tweets.id',
+                'tweet.fields': 'created_at,text,context_annotations'
+            }
+            
+            if self.last_mention_id:
+                params['since_id'] = self.last_mention_id
+            
+            # Make request
+            endpoint = f'{self.base_url}/users/me/mentions'
+            response = requests.get(
+                endpoint,
+                params=params,
+                auth=self.auth
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # Update last mention ID
+            if data.get('data'):
+                self.last_mention_id = data['data'][0]['id']
+            
+            return data.get('data', [])
+            
+        except Exception as e:
+            print(f'Error getting mentions: {str(e)}')
+            return []
+    
+    def create_post(self, text: str) -> Dict:
         """Create a new post with proper authentication"""
         endpoint = f'{self.base_url}/tweets'
         headers = {'Content-Type': 'application/json'}
@@ -46,7 +86,7 @@ class XAPIClient:
             print(f'Error creating post: {str(e)}')
             return None
 
-    def create_thread(self, posts: list) -> list:
+    def create_thread(self, posts: List[str]) -> List[Dict]:
         """Create a thread from a list of posts"""
         if not posts:
             return None
