@@ -7,12 +7,24 @@ from langchain.memory import ConversationBufferMemory
 
 class KnowledgeSystem:
     def __init__(self):
-        # Initialize OpenAI client directly
+        # Initialize OpenAI client and embeddings function
         self.client = OpenAI()
+        
+        # Create a simple embeddings wrapper
+        class SimpleEmbeddings:
+            def __init__(self, client):
+                self.client = client
+            
+            def embed_query(self, text):
+                response = self.client.embeddings.create(
+                    model="text-embedding-ada-002",
+                    input=text
+                )
+                return response.data[0].embedding
         
         # Vector store for semantic search and pattern matching
         self.vector_store = Chroma(
-            embedding_function=self.client.embeddings,
+            embedding_function=SimpleEmbeddings(self.client),
             collection_name="gonzo_knowledge"
         )
         
@@ -40,56 +52,67 @@ class KnowledgeSystem:
                                    interaction: Dict,
                                    engagement_metrics: Dict) -> None:
         """Learn from each interaction and its outcomes."""
-        # Store interaction in vector database for pattern matching
-        text = str(interaction)
-        response = self.client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=text
-        )
-        embedding = response.data[0].embedding
-        
-        self.vector_store.add_texts(
-            texts=[text],
-            metadatas=[{"timestamp": datetime.now().isoformat()}],
-            embeddings=[embedding]
-        )
-        
-        # Update pattern recognition
-        await self._update_patterns(interaction)
-        
-        # Adjust confidence based on engagement
-        await self._adjust_confidence(interaction, engagement_metrics)
-        
-        # Prune outdated information
-        await self._prune_outdated_knowledge()
+        try:
+            # Get embedding for text
+            text = str(interaction)
+            response = self.client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=text
+            )
+            embedding = response.data[0].embedding
+            
+            # Add to vector store
+            self.vector_store.add_documents(
+                documents=[text],
+                metadatas=[{"timestamp": datetime.now().isoformat()}],
+                embeddings=[embedding]
+            )
+            
+            # Update pattern recognition
+            await self._update_patterns(interaction)
+            
+            # Adjust confidence based on engagement
+            await self._adjust_confidence(interaction, engagement_metrics)
+            
+            # Prune outdated information
+            await self._prune_outdated_knowledge()
+            
+        except Exception as e:
+            print(f"Error in learn_from_interaction: {str(e)}")
+            raise
 
     async def get_relevant_knowledge(self, 
                                    context: Dict,
                                    min_confidence: float = 0.3) -> Dict:
         """Retrieve relevant knowledge above confidence threshold."""
-        # Get embedding for query
-        text = str(context)
-        response = self.client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=text
-        )
-        query_embedding = response.data[0].embedding
-        
-        # Search vector store with embedding
-        docs_and_scores = self.vector_store.similarity_search_by_vector(
-            embedding=query_embedding,
-            k=5  # Get top 5 relevant pieces of information
-        )
-        
-        # Filter by confidence
-        confident_knowledge = {}
-        for doc in docs_and_scores:
-            doc_id = doc.metadata.get("id")
-            if doc_id in self.confidence_scores["predictions"]:
-                if self.confidence_scores["predictions"][doc_id] >= min_confidence:
-                    confident_knowledge[doc_id] = doc.page_content
-        
-        return confident_knowledge
+        try:
+            # Get embedding for query
+            text = str(context)
+            embedding_response = self.client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=text
+            )
+            query_embedding = embedding_response.data[0].embedding
+            
+            # Search vector store with embedding
+            results = self.vector_store.similarity_search_by_vector(
+                embedding=query_embedding,
+                k=5  # Get top 5 relevant pieces of information
+            )
+            
+            # Filter by confidence
+            confident_knowledge = {}
+            for doc in results:
+                doc_id = doc.metadata.get("id")
+                if doc_id in self.confidence_scores["predictions"]:
+                    if self.confidence_scores["predictions"][doc_id] >= min_confidence:
+                        confident_knowledge[doc_id] = doc.page_content
+            
+            return confident_knowledge
+            
+        except Exception as e:
+            print(f"Error in get_relevant_knowledge: {str(e)}")
+            return {}
 
     async def _update_patterns(self, interaction: Dict) -> None:
         """Update recognized patterns based on new information."""
