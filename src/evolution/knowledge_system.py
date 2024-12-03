@@ -1,13 +1,17 @@
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import asyncio
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory
 
 class KnowledgeSystem:
     def __init__(self):
-        # Use simple memory storage initially
-        self.memory_store = {}
+        # Vector store for semantic search and pattern matching
+        self.vector_store = Chroma(
+            embedding_function=OpenAIEmbeddings(),
+            collection_name="gonzo_knowledge"
+        )
         
         # Different types of memory
         self.short_term = ConversationBufferMemory(k=100)  # Recent interactions
@@ -33,12 +37,11 @@ class KnowledgeSystem:
                                    interaction: Dict,
                                    engagement_metrics: Dict) -> None:
         """Learn from each interaction and its outcomes."""
-        # Store interaction with timestamp
-        timestamp = datetime.now().isoformat()
-        self.memory_store[timestamp] = {
-            "interaction": interaction,
-            "metrics": engagement_metrics
-        }
+        # Store interaction in vector database for pattern matching
+        self.vector_store.add_texts(
+            texts=[str(interaction)],
+            metadatas=[{"timestamp": datetime.now().isoformat()}]
+        )
         
         # Update pattern recognition
         await self._update_patterns(interaction)
@@ -52,20 +55,22 @@ class KnowledgeSystem:
     async def get_relevant_knowledge(self, 
                                    context: Dict,
                                    min_confidence: float = 0.3) -> Dict:
-        """Retrieve relevant knowledge based on simple matching."""
-        relevant_knowledge = {}
-        context_type = context.get("type", "")
-        context_content = str(context.get("content", "")).lower()
+        """Retrieve relevant knowledge above confidence threshold."""
+        # Search vector store for relevant information
+        relevant_docs = self.vector_store.similarity_search(
+            str(context),
+            k=5  # Get top 5 relevant pieces of information
+        )
         
-        # Simple keyword matching for now
-        for timestamp, data in self.memory_store.items():
-            interaction = data["interaction"]
-            # Match by type and content keywords
-            if (context_type in interaction.get("type", "") or
-                any(word in str(interaction).lower() for word in context_content.split())):
-                relevant_knowledge[timestamp] = interaction
+        # Filter by confidence
+        confident_knowledge = {}
+        for doc in relevant_docs:
+            doc_id = doc.metadata.get("id")
+            if doc_id in self.confidence_scores["predictions"]:
+                if self.confidence_scores["predictions"][doc_id] >= min_confidence:
+                    confident_knowledge[doc_id] = doc.page_content
         
-        return relevant_knowledge
+        return confident_knowledge
 
     async def _update_patterns(self, interaction: Dict) -> None:
         """Update recognized patterns based on new information."""
@@ -118,12 +123,5 @@ class KnowledgeSystem:
         """Remove outdated information."""
         current_time = datetime.now()
         
-        # Remove old memories (older than 30 days)
-        self.memory_store = {
-            timestamp: data
-            for timestamp, data in self.memory_store.items()
-            if (current_time - datetime.fromisoformat(timestamp)).days <= 30
-        }
-        
-        # Clear short-term memory
+        # Prune old short-term memories
         self.short_term.clear()
