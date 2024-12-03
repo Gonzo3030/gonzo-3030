@@ -13,11 +13,13 @@ class GonzoOrchestrator:
         self.pattern_recognition = PatternRecognition()
         self.learning = LearningSystem()
         
+        # Queue for evolution events
+        self.evolution_queue = asyncio.Queue()
+        
         # State tracking
         self.current_state = {
             "active_analyses": set(),
-            "pending_learnings": [],
-            "evolution_queue": asyncio.Queue()
+            "pending_learnings": []
         }
         
         # Integration metrics
@@ -30,32 +32,37 @@ class GonzoOrchestrator:
     
     async def process_input(self, input_data: Dict) -> Dict:
         """Process input through all systems in optimal order."""
-        # 1. Check existing knowledge
-        relevant_knowledge = await self.knowledge.get_relevant_knowledge(input_data)
-        
-        # 2. Analyze for patterns
-        pattern_analysis = await self.pattern_recognition.analyze_pattern(
-            content=input_data["content"],
-            pattern_type=input_data.get("type", "general")
-        )
-        
-        # 3. Generate response using combined intelligence
-        response = await self._generate_integrated_response(
-            input_data, relevant_knowledge, pattern_analysis
-        )
-        
-        # 4. Queue learning from interaction
-        await self.evolution_queue.put({
-            "input": input_data,
-            "knowledge_used": relevant_knowledge,
-            "patterns_found": pattern_analysis,
-            "response": response
-        })
-        
-        # 5. Process evolution queue
-        asyncio.create_task(self._process_evolution_queue())
-        
-        return response
+        try:
+            # 1. Check existing knowledge
+            relevant_knowledge = await self.knowledge.get_relevant_knowledge(input_data)
+            
+            # 2. Analyze for patterns
+            pattern_analysis = await self.pattern_recognition.analyze_pattern(
+                content=input_data["content"],
+                pattern_type=input_data.get("type", "general")
+            )
+            
+            # 3. Generate response using combined intelligence
+            response = await self._generate_integrated_response(
+                input_data, relevant_knowledge, pattern_analysis
+            )
+            
+            # 4. Queue learning from interaction
+            await self.evolution_queue.put({
+                "input": input_data,
+                "knowledge_used": relevant_knowledge,
+                "patterns_found": pattern_analysis,
+                "response": response
+            })
+            
+            # 5. Process evolution queue
+            asyncio.create_task(self._process_evolution_queue())
+            
+            return response
+            
+        except Exception as e:
+            print(f"Error in process_input: {str(e)}")
+            raise
 
     async def _generate_integrated_response(self,
                                           input_data: Dict,
@@ -82,8 +89,8 @@ class GonzoOrchestrator:
 
     async def _process_evolution_queue(self) -> None:
         """Process queued evolution events."""
-        while True:
-            try:
+        try:
+            while True:
                 evolution_event = await self.evolution_queue.get()
                 
                 # Update knowledge
@@ -105,21 +112,23 @@ class GonzoOrchestrator:
                 # Update metrics
                 self._update_metrics("evolution_processed")
                 
-            except asyncio.CancelledError:
-                break
-            
-            except Exception as e:
-                print(f"Evolution processing error: {e}")
+                # Mark task as done
+                self.evolution_queue.task_done()
+                
+        except asyncio.CancelledError:
+            print("Evolution queue processing cancelled")
+        except Exception as e:
+            print(f"Error in evolution queue processing: {str(e)}")
 
     async def _craft_response(self, context: Dict) -> str:
         """Craft a response using Gonzo's personality and learned patterns."""
-        # Implement response generation using all available context
-        pass
+        # For initial testing, return a simple response
+        return f"Processing {context['input'].get('type', 'unknown')} request..."
 
     def _calculate_confidence(self, context: Dict) -> float:
         """Calculate confidence level in the response."""
-        # Implementation for confidence calculation
-        pass
+        # Simple initial confidence calculation
+        return 0.8 if context['relevant_knowledge'] else 0.5
 
     def _update_metrics(self, event_type: str) -> None:
         """Update system metrics."""
