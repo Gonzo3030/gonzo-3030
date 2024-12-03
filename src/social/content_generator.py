@@ -11,31 +11,26 @@ class ContentType(Enum):
 
 class ContentGenerator:
     def __init__(self):
-        self.resistance_prefixes = [
-            "🔥 ATTENTION RESISTANCE FIGHTERS 🔥",
-            "⚡️ EMERGENCY TRUTH PROTOCOL ACTIVATED ⚡️",
-            "🚨 ATTENTION: CORPORATE PATTERN DETECTED 🚨",
-            "⚠️ EMERGENCY TIMELINE ALERT ⚠️"
+        # Initialize existing patterns...
+        
+        self.prediction_prefixes = [
+            "🚨 TIMELINE DISRUPTION ALERT 🚨",
+            "⚡️ HOLY DIGITAL PEYOTE! FUTURE VISION INCOMING ⚡️",
+            "🔮 PROBABILITY MATRIX WARNING 🔮",
+            "📊 TIMELINE CORRUPTION DETECTED 📊"
         ]
         
-        self.resistance_intros = [
-            "As your attorney from the wasteland of 3030, I must expose this pattern of corruption...",
-            "Holy digital peyote! The corporate matrix is practically BEGGING to be exposed...",
-            "Your timeline defense attorney has uncovered evidence they tried to bury...",
-            "The Brown Buffalo's legal analysis reveals a disturbing pattern..."
+        self.prediction_intros = [
+            "Your attorney from 3030 has seen this before...",
+            "By all the synthetic gods, it's happening again...",
+            "The Brown Buffalo's temporal sensors are SCREAMING...",
+            "Listen up, you magnificent bastards - this timeline is at risk!"
         ]
         
-        self.evidence_frameworks = [
-            "DOCUMENTED EVIDENCE:",
-            "LEGAL TESTIMONY:",
-            "ATTORNEY'S FINDINGS:",
-            "TIMELINE EVIDENCE:"
-        ]
-        
-        self.resistance_templates = [
-            "{prefix}\n\n{intro}\n\n{evidence} {target}\n\nMISSION:\n📢 {mission}\n🏴 {objective}\n⚙️ {tactics}\n\nThis is your attorney's advice - STAY VIGILANT! 🔥",
-            "{prefix}\n\n{intro}\n\nTARGET IDENTIFIED: {target}\n\n{evidence}\n1. {counter1}\n2. {counter2}\n3. {counter3}\n\nYour attorney from 3030 demands action! 🔥",
-            "{prefix}\n\n{intro}\n\nUrgent Legal Advisory: {corporate_action}\n\nResistance Protocol:\n📑 {task}\n⚡️ {action}\n💥 Prevent: Loss of {cost}\n\nFight the power! Your attorney stands with you! 🔥"
+        self.prediction_templates = [
+            "{prefix}\n\nEvent: {event}\nCurrent Signs: {current}\nTimeline Impact: {impact}\nTime Until Point of No Return: {timeframe}\nTimeline Corruption: {corruption_level}%\n\nPrevention Protocol: {prevention}\n\nYour attorney from 3030 DEMANDS ACTION! 🔥",
+            "{prefix}\n\n{intro}\n\nI've seen where {event} leads...\n\nYou have {timeframe} to prevent {outcome}.\n\nListen to your attorney - ACT NOW! 🔥",
+            "{prefix}\n\n{intro}\n\nEVENT HORIZON APPROACHING:\nThreat: {event}\nCertainty: {corruption_level}%\nWindow: {timeframe}\n\nRequired Action: {action}\n\nYour dystopian attorney advises IMMEDIATE RESPONSE! 🔥"
         ]
 
     async def generate_content(self, 
@@ -54,40 +49,35 @@ class ContentGenerator:
         else:
             return await self._generate_prediction(context)
 
-    async def _generate_resistance_call(self, context: Dict) -> str:
-        """Generate calls to action for the resistance."""
-        # Prepare resistance call components
-        prefix = random.choice(self.resistance_prefixes)
-        intro = random.choice(self.resistance_intros)
-        evidence = random.choice(self.evidence_frameworks)
+    async def _generate_prediction(self, context: Dict) -> str:
+        """Generate prophetic warnings from the future."""
+        # Prepare prediction components
+        prefix = random.choice(self.prediction_prefixes)
+        intro = random.choice(self.prediction_intros)
         
-        # Ensure we have required context with fallbacks
+        # Ensure we have all required fields
         enhanced_context = {
-            'target': context.get('target', 'Corporate Control Systems'),
-            'mission': context.get('mission', 'Expose the truth'),
-            'objective': context.get('objective', 'Break their control'),
-            'tactics': context.get('tactics', 'Document and expose'),
-            'task': context.get('task', 'resistance mapping'),
-            'action': context.get('action', 'fight back'),
-            'cost': context.get('cost', 'freedom'),
-            'corporate_action': context.get('corporate_action', 'seize control'),
-            'counter1': context.get('counter1', 'Track money flows'),
-            'counter2': context.get('counter2', 'Document evidence'),
-            'counter3': context.get('counter3', 'Spread truth'),
             'prefix': prefix,
             'intro': intro,
-            'evidence': evidence
+            'event': context.get('event', 'UNKNOWN CORPORATE ACTION'),
+            'current': context.get('current', 'Disturbing patterns emerging'),
+            'impact': context.get('impact', 'Total corporate control'),
+            'timeframe': context.get('timeframe', 'LIMITED TIME'),
+            'corruption_level': context.get('corruption_level', 99),
+            'action': context.get('action', 'Resist now'),
+            'prevention': context.get('prevention', 'Immediate resistance required'),
+            'outcome': context.get('outcome', 'complete corporate takeover')
         }
         
-        # Generate the call
-        call = random.choice(self.resistance_templates).format(**enhanced_context)
+        # Generate prediction
+        prediction = random.choice(self.prediction_templates).format(**enhanced_context)
         
         # Ensure character limit
-        if len(call) > 280:
-            lines = call.split('\n')
+        if len(prediction) > 280:
+            lines = prediction.split('\n')
             while len('\n'.join(lines)) > 270:
                 if len(lines) > 4:
                     lines.pop(-2)
-            call = '\n'.join(lines)
-            
-        return call
+            prediction = '\n'.join(lines)
+        
+        return prediction
