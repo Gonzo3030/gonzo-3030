@@ -52,6 +52,43 @@ class PatternRecognition:
             "warnings": self._extract_warnings(analysis)
         }
 
+    async def evolve_understanding(self, feedback: Dict) -> None:
+        """Evolve pattern recognition based on feedback."""
+        try:
+            pattern_type = feedback.get("type", "general")
+            patterns = feedback.get("patterns", set())
+            success = feedback.get("success", False)
+            
+            if pattern_type not in self.pattern_types:
+                pattern_type = "manipulation"  # Default fallback
+            
+            # Update pattern tracking based on success
+            if success:
+                # Move successful patterns to confirmed
+                self.pattern_types[pattern_type]["confirmed_patterns"].update(patterns)
+                if pattern_type == "resistance_strategies":
+                    self.pattern_types["resistance_strategies"]["successful"].update(patterns)
+            else:
+                # Track failed patterns
+                if pattern_type == "resistance_strategies":
+                    self.pattern_types["resistance_strategies"]["failed"].update(patterns)
+                
+                # Record in evolution tracking for analysis
+                evolution_tracking = self.pattern_types[pattern_type]["evolution_tracking"]
+                for pattern in patterns:
+                    if pattern not in evolution_tracking:
+                        evolution_tracking[pattern] = {
+                            "failures": 1,
+                            "first_seen": datetime.now().isoformat(),
+                            "last_update": datetime.now().isoformat()
+                        }
+                    else:
+                        evolution_tracking[pattern]["failures"] += 1
+                        evolution_tracking[pattern]["last_update"] = datetime.now().isoformat()
+            
+        except Exception as e:
+            print(f"Error in evolve_understanding: {str(e)}")
+
     def _create_analysis_chain(self):
         """Create general pattern analysis chain."""
         prompt = ChatPromptTemplate.from_template(
