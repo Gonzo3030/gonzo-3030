@@ -26,6 +26,5 @@ flake8>=4.0.1
 # Language Models and Vector Storage
 langchain>=0.0.184
 langchain-community>=0.0.10
-chroma-core>=0.2.0
-chromad>=0.2.0
+chromadb>=0.4.14
 anthropic>=0.3.0
