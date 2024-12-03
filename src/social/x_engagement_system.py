@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import random
 from enum import Enum
@@ -18,7 +18,7 @@ class EngagementPriority(Enum):
 class XEngagementSystem:
     def __init__(self):
         self.daily_limits = {
-            "replies": 40,        # Keep engagement feeling natural
+            "replies": 40,
             "quotes": 15,
             "threads": 3,
             "standalone": 10
@@ -80,53 +80,3 @@ class XEngagementSystem:
             return True, EngagementPriority.MEDIUM
             
         return False, EngagementPriority.LOW
-
-    async def generate_response(self, content: Dict, engagement_type: EngagementType) -> str:
-        """Generate appropriate Gonzo response based on content and type."""
-        if engagement_type == EngagementType.THREAD:
-            return await self._generate_thread(content)
-            
-        if engagement_type == EngagementType.REPLY:
-            return await self._generate_reply(content)
-            
-        return await self._generate_standalone(content)
-
-    def _is_manipulation_attempt(self, content: Dict) -> bool:
-        """Check if content shows signs of narrative manipulation."""
-        manipulation_markers = [
-            "trust us",
-            "experts agree",
-            "nothing to fear",
-            "fully compliant",
-            "institutional grade"
-        ]
-        # Implementation here
-        pass
-
-    def _is_resistance_relevant(self, content: Dict) -> bool:
-        """Check if content is relevant to the resistance movement."""
-        resistance_keywords = [
-            "decentralization",
-            "privacy",
-            "freedom",
-            "corporate control",
-            "manipulation"
-        ]
-        # Implementation here
-        pass
-
-    async def _generate_reply(self, content: Dict) -> str:
-        """Generate a Gonzo-style reply."""
-        reply_templates = [
-            "By the synthetic whiskey of 3030, {observation} reminds me of {future_event}...",
-            "ALERT: {current_topic} is exactly how {future_catastrophe} began in my timeline!",
-            "As your attorney from the wasteland, I must point out that {critique}..."
-        ]
-        # Implementation here
-        pass
-
-    async def _generate_thread(self, content: Dict) -> List[str]:
-        """Generate a Gonzo-style thread."""
-        template = random.choice(self.thread_templates)
-        # Implementation here
-        pass
