@@ -1,1 +1,1 @@
-from .x_api_client import XApiClient
+from .social.x_api_client import XApiClient
