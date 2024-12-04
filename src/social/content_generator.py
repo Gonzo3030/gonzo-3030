@@ -1,65 +1,40 @@
-    def _generate_warning(self, assessment: Dict, context: Dict) -> str:
-        """Generate a warning based on current assessment"""
-        # Get key information
-        severity = assessment.get('threat_assessment', {}).get('severity', 0.5)
-        active_patterns = assessment.get('active_patterns', [])
-        key_actors = assessment.get('key_actors', [])
+    def _generate_technical_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
+        """Generate warning in technical/analytical style"""
+        # Technical components
+        status_levels = ['CRITICAL', 'HIGH ALERT', 'WARNING', 'ADVISORY']
+        metrics = ['Risk Level', 'Timeline Corruption', 'Pattern Match', 'Threat Level']
         
-        # Different warning styles
-        styles = [
-            self._generate_journalistic_warning,
-            self._generate_legal_warning,
-            self._generate_technical_warning,
-            self._generate_historical_warning
-        ]
+        # Convert severity to percentage
+        risk_percentage = int(severity * 100)
         
-        # Choose style based on context and recent history
-        if len(self.last_types) >= 2 and all(t == ContentType.WARNING for t in self.last_types[-2:]):
-            # If last two posts were warnings, force a different style
-            style = random.choice(styles)
-        else:
-            # Weight towards more serious styles based on severity
-            weights = [severity, 1-severity, 0.5, 0.5]
-            style = random.choices(styles, weights=weights, k=1)[0]
+        # Get pattern and create technical ID
+        pattern = random.choice(patterns) if patterns else 'manipulation pattern'
+        pattern_id = f"PTN-{hash(pattern) % 10000:04d}"
         
-        return style(severity, active_patterns, key_actors, context)
+        status = status_levels[0] if severity > 0.8 else status_levels[1] if severity > 0.6 else status_levels[2]
+        metric = random.choice(metrics)
+        
+        return f"TECHNICAL {status}\nPattern ID: {pattern_id}\n{metric}: {risk_percentage}%\nDetected: {pattern}\nYour attorney from 3030 recommends immediate countermeasures."
     
-    def _generate_journalistic_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
-        """Generate warning in journalistic style"""
-        # Choose dynamic components
-        headline_verbs = ['BREAKING', 'ALERT', 'EXCLUSIVE', 'DEVELOPING']
-        impact_phrases = [
-            'threatens digital rights',
-            'signals dangerous precedent',
-            'raises major concerns',
-            'shows troubling pattern'
+    def _generate_historical_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
+        """Generate warning with historical perspective"""
+        # Historical references
+        historical_intros = [
+            "I've seen this before...",
+            "Timeline analysis reveals...",
+            "History repeats itself:",
+            "From the archives of 3030:"
         ]
         
-        headline = random.choice(headline_verbs)
-        pattern = random.choice(patterns) if patterns else 'corporate manipulation'
-        actor = random.choice(actors) if actors else 'major tech companies'
-        impact = random.choice(impact_phrases)
-        
-        return f"{headline}: New evidence of {pattern} by {actor} {impact}. Your attorney from 3030 urges vigilance. Details and countermeasures incoming..."
-    
-    def _generate_legal_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
-        """Generate warning in legal style"""
-        # Legal-themed components
-        legal_terms = [
-            'NOTICE OF VIOLATION',
-            'CEASE AND DESIST ADVISORY',
-            'LEGAL ALERT',
-            'RIGHTS VIOLATION WARNING'
+        consequences = [
+            "led to massive data exploitation",
+            "resulted in widespread manipulation",
+            "caused irreversible timeline damage",
+            "enabled total corporate control"
         ]
         
-        violations = [
-            'digital rights infringement',
-            'privacy violation',
-            'data sovereignty breach',
-            'algorithmic manipulation'
-        ]
+        intro = random.choice(historical_intros)
+        pattern = random.choice(patterns) if patterns else 'these patterns'
+        consequence = random.choice(consequences)
         
-        header = random.choice(legal_terms)
-        pattern = random.choice(patterns) if patterns else random.choice(violations)
-        
-        return f"{header}: As your attorney from 3030, I must advise of ongoing {pattern}. Timeline precedents show catastrophic outcomes. Documenting violations and preparing countermeasures..."
+        return f"{intro} In my timeline, {pattern} {consequence}. As your attorney from 3030, I must warn: we're seeing the same signs. We can still prevent this future."
