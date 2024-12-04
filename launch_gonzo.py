@@ -1,5 +1,6 @@
 import asyncio
 import os
+import signal
 from typing import Dict
 from src.core.orchestrator import GonzoOrchestrator
 from src.social.x_integration import XIntegration
@@ -12,6 +13,7 @@ class GonzoLauncher:
         self.x_system = XIntegration()
         self.personality = GonzoPersonality()
         self.brave_searcher = BraveSearcher()
+        self.shutdown_event = asyncio.Event()
         
     async def launch(self):
         print("""
@@ -28,18 +30,22 @@ class GonzoLauncher:
             # Initialize all systems
             await self.orchestrator.process_input({"type": "system_init", "content": "Initializing Gonzo-3030 systems"})
             
-            while True:
+            while not self.shutdown_event.is_set():
                 if self.x_system.safety_manager.is_operational():
                     # Check for mentions and interactions
                     mentions = self.x_system.api_client.get_mentions(since_minutes=5)
                     if mentions:
                         for mention in mentions:
+                            if self.shutdown_event.is_set():
+                                break
                             await self.handle_mention(mention)
                     
                     # Check for significant new developments
                     findings = await self.brave_searcher.monitor_topics()
                     if findings:
                         for finding in findings:
+                            if self.shutdown_event.is_set():
+                                break
                             await self.handle_finding(finding)
                     
                     # Get system status
@@ -61,19 +67,24 @@ class GonzoLauncher:
                     had_activity = bool(mentions or findings)
                     wait_time = 300 if had_activity else 900  # 5 mins if active, 15 if not
                     print(f"\n⏳ Waiting {wait_time//60} minutes until next check...")
-                    await asyncio.sleep(wait_time)
+                    try:
+                        await asyncio.wait_for(self.shutdown_event.wait(), timeout=wait_time)
+                    except asyncio.TimeoutError:
+                        continue
                 else:
                     print("\n⚠️ Technical systems in recovery. Waiting...")
-                    await asyncio.sleep(3600)
+                    try:
+                        await asyncio.wait_for(self.shutdown_event.wait(), timeout=3600)
+                    except asyncio.TimeoutError:
+                        continue
                     
-        except KeyboardInterrupt:
-            print("\n🛑 Shutting down Gonzo-3030...")
-            await self.orchestrator.process_input({"type": "system_shutdown", "content": "Emergency shutdown initiated"})
-            
         except Exception as e:
             print(f"\n❌ Critical error: {str(e)}")
             self.x_system.safety_manager.log_api_error('CRITICAL_ERROR', str(e))
             raise
+        finally:
+            print("\n🛑 Shutting down Gonzo-3030...")
+            await self.orchestrator.process_input({"type": "system_shutdown", "content": "Emergency shutdown initiated"})
     
     async def handle_mention(self, mention: Dict):
         """Handle a mention or interaction"""
@@ -121,6 +132,21 @@ class GonzoLauncher:
                 
         except Exception as e:
             print(f"Error handling finding: {str(e)}")
+    
+    def shutdown(self):
+        """Trigger a clean shutdown"""
+        print("\n🚨 Initiating shutdown sequence...")
+        self.shutdown_event.set()
+
+def handle_shutdown(signum, frame):
+    """Handle shutdown signals"""
+    if hasattr(asyncio, 'get_running_loop'):
+        try:
+            loop = asyncio.get_running_loop()
+            if hasattr(loop, 'launcher'):
+                loop.launcher.shutdown()
+        except RuntimeError:
+            pass
 
 if __name__ == "__main__":
     # Load environment variables
@@ -136,6 +162,16 @@ if __name__ == "__main__":
         print("Please set these in your .env file")
         exit(1)
     
+    # Set up signal handlers
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    
     # Launch Gonzo
     launcher = GonzoLauncher()
-    asyncio.run(launcher.launch())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.launcher = launcher  # Store reference for signal handler
+    try:
+        loop.run_until_complete(launcher.launch())
+    finally:
+        loop.close()
