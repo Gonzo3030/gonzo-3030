@@ -38,18 +38,40 @@ class BraveSearcher:
     async def _search_topic(self, topic: str) -> List[Dict]:
         """Search Brave for a specific topic"""
         try:
-            response = await self._brave_search(topic)
-            return response.get('results', [])
+            # Use the provided brave_web_search function
+            results = await self.brave_web_search(
+                query=topic,
+                count=10  # Get 10 results per topic
+            )
+            
+            processed_results = []
+            for result in results.get('web', {}).get('results', []):
+                processed_results.append({
+                    'url': result.get('url'),
+                    'title': result.get('title'),
+                    'description': result.get('description'),
+                    'published_date': result.get('published_time'),
+                    'age_hours': self._calculate_age_hours(result.get('published_time'))
+                })
+            
+            return processed_results
+            
         except Exception as e:
             print(f"Error searching topic {topic}: {str(e)}")
             return []
     
-    async def _brave_search(self, query: str) -> Dict:
-        """Execute Brave search"""
-        from brave_web_search import brave_web_search
-        
-        response = await brave_web_search(query=query)
-        return response
+    async def brave_web_search(self, query: str, count: int = 10) -> Dict:
+        """Execute Brave search using provided function"""
+        try:
+            function_globals = globals()
+            if 'brave_web_search' in function_globals:
+                return await function_globals['brave_web_search'](query=query, count=count)
+            else:
+                print(f"brave_web_search function not available")
+                return {'web': {'results': []}}
+        except Exception as e:
+            print(f"Error executing Brave search: {str(e)}")
+            return {'web': {'results': []}}
     
     def _should_search(self, topic: str, max_age_hours: int) -> bool:
         """Determine if we should search for a topic again"""
@@ -58,6 +80,18 @@ class BraveSearcher:
             
         time_since_last = datetime.now() - self.last_search_time[topic]
         return time_since_last > timedelta(hours=max_age_hours)
+    
+    def _calculate_age_hours(self, published_time: str) -> float:
+        """Calculate age of article in hours"""
+        if not published_time:
+            return float('inf')
+            
+        try:
+            pub_date = datetime.fromisoformat(published_time.replace('Z', '+00:00'))
+            age = datetime.now() - pub_date
+            return age.total_seconds() / 3600
+        except:
+            return float('inf')
     
     def _filter_significant(self, results: List[Dict], topic: str) -> List[Dict]:
         """Filter for significant new information"""
@@ -85,17 +119,9 @@ class BraveSearcher:
         score = 0.0
         
         # Age factor (newer is better)
-        if 'published_date' in result:
-            age_hours = (datetime.now() - datetime.fromisoformat(result['published_date'])).total_seconds() / 3600
+        age_hours = result.get('age_hours', float('inf'))
+        if age_hours != float('inf'):
             score += max(0, 1 - (age_hours / (24 * 7)))  # Full score if < 24h old, declining over a week
-        
-        # Relevance factor
-        if 'relevance_score' in result:
-            score += result['relevance_score'] * 0.3
-        
-        # Source credibility (if we had it)
-        if 'source_credibility' in result:
-            score += result['source_credibility'] * 0.2
         
         # Keyword matching
         text = (result.get('title', '') + ' ' + result.get('description', '')).lower()
