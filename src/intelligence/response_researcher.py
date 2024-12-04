@@ -1,70 +1,105 @@
-from typing import Dict, List, Any
-from ..intelligence.brave_searcher import BraveSearcher
-
-class ResponseResearcher:
-    def __init__(self):
-        self.brave_searcher = BraveSearcher()
-        self.knowledge_system = None
-
-    def set_knowledge_system(self, knowledge_system):
-        """Set the knowledge system reference"""
-        self.knowledge_system = knowledge_system
-
-    async def research_response(self, mention: Dict) -> Dict[str, Any]:
-        """Research context for a response to a mention"""
-        # Extract key information from mention
-        text = mention.get('text', '').lower()
+    def _is_relevant_phrase(self, phrase: str) -> bool:
+        """Check if a phrase is relevant for research"""
+        relevant_terms = [
+            'privacy', 'data', 'corporate', 'company', 'tech', 'government',
+            'surveillance', 'tracking', 'regulation', 'policy', 'control',
+            'manipulation', 'influence', 'power', 'rights', 'freedom',
+            'algorithm', 'ai', 'intelligence', 'social', 'media', 'platform',
+            'monopoly', 'antitrust', 'encryption', 'security', 'breach',
+            'hack', 'leak', 'scandal', 'protest', 'resistance', 'activism'
+        ]
         
-        # Remove the @mention part
-        text = ' '.join([word for word in text.split() if not word.startswith('@')])
+        return any(term in phrase.lower() for term in relevant_terms)
+    
+    def _extract_topic_queries(self, text: str) -> List[str]:
+        """Extract topic queries when no clear phrases are found"""
+        # Basic topics that Gonzo cares about
+        base_topics = [
+            'corporate manipulation',
+            'privacy violations',
+            'data exploitation',
+            'surveillance practices',
+            'tech regulation',
+            'digital rights',
+            'algorithmic control',
+            'corporate influence',
+            'government overreach',
+            'resistance movements'
+        ]
         
-        # Extract key topics and queries
-        research_queries = self._generate_research_queries(text)
+        # Try to match text to relevant topics
+        matched_topics = []
+        for topic in base_topics:
+            if any(word in text.lower() for word in topic.split()):
+                matched_topics.append(topic)
         
-        # Conduct research
-        research_results = []
-        for query in research_queries:
-            try:
-                results = await self.brave_searcher._search_topic(query)
-                if results:
-                    research_results.extend(results)
-            except Exception as e:
-                print(f'Error researching query {query}: {str(e)}')
+        if matched_topics:
+            return [f"{topic} recent developments" for topic in matched_topics[:3]]
+        else:
+            # If no matches, use most relevant base topics
+            return [f"{topic} recent" for topic in base_topics[:3]]
 
-        # Analyze findings
-        analysis = self._analyze_research_results(research_results)
+    def _analyze_research_results(self, results: List[Dict]) -> Dict[str, Any]:
+        """Analyze research results for patterns and insights"""
+        if not results:
+            return {
+                'key_findings': [],
+                'patterns': [],
+                'implications': [],
+                'credibility': 0.0
+            }
+        
+        # Extract key information
+        findings = []
+        patterns = set()
+        implications = set()
+        
+        for result in results:
+            # Extract finding
+            finding = {
+                'title': result.get('title', ''),
+                'summary': result.get('description', ''),
+                'relevance': result.get('significance', 0.5)
+            }
+            findings.append(finding)
+            
+            # Look for patterns
+            text = f"{finding['title']} {finding['summary']}".lower()
+            self._extract_patterns(text, patterns)
+            self._extract_implications(text, implications)
+        
+        # Calculate overall credibility
+        credibility = self._calculate_credibility(findings)
         
         return {
-            'original_text': text,
-            'research_results': research_results,
-            'analysis': analysis,
-            'response_recommendations': self._generate_response_recommendations(analysis)
+            'key_findings': sorted(findings, key=lambda x: x['relevance'], reverse=True)[:3],
+            'patterns': list(patterns),
+            'implications': list(implications),
+            'credibility': credibility
         }
 
-    def _generate_research_queries(self, text: str) -> List[str]:
-        """Generate research queries based on mention text"""
-        queries = []
+    def _extract_patterns(self, text: str, patterns: set):
+        """Extract patterns from text"""
+        pattern_indicators = {
+            'corporate_control': ['acquisition', 'merger', 'market share', 'dominance'],
+            'privacy_violation': ['data collection', 'tracking', 'surveillance'],
+            'manipulation': ['algorithm change', 'content moderation', 'targeted'],
+            'resistance': ['protest', 'boycott', 'alternative', 'decentralized']
+        }
         
-        # Basic cleanup
-        text = text.replace('?', ' ').replace('!', ' ')
-        words = text.split()
+        for pattern, indicators in pattern_indicators.items():
+            if any(indicator in text for indicator in indicators):
+                patterns.add(pattern)
+
+    def _extract_implications(self, text: str, implications: set):
+        """Extract potential implications from text"""
+        implication_indicators = {
+            'privacy_risk': ['expose', 'vulnerable', 'compromise', 'risk'],
+            'control_increase': ['expand', 'growth', 'increase', 'more'],
+            'rights_reduction': ['limit', 'restrict', 'reduce', 'prevent'],
+            'resistance_opportunity': ['alternative', 'solution', 'protect', 'secure']
+        }
         
-        # Look for key phrases
-        key_phrases = []
-        for i in range(len(words)):
-            if i+2 < len(words):
-                phrase = ' '.join(words[i:i+3])
-                if self._is_relevant_phrase(phrase):
-                    key_phrases.append(phrase)
-        
-        # Generate specific queries
-        if key_phrases:
-            for phrase in key_phrases:
-                queries.append(f'"{phrase}" corporate influence recent')
-                queries.append(f'"{phrase}" privacy implications')
-                queries.append(f'"{phrase}" regulation policy')
-        else:
-            # Fallback to topic extraction
-            queries = self._extract_topic_queries(text)
-        
-        return queries[:3]  # Limit to top 3 most relevant queries
+        for implication, indicators in implication_indicators.items():
+            if any(indicator in text for indicator in indicators):
+                implications.add(implication)
