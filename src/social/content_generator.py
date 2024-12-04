@@ -1,49 +1,65 @@
-from typing import Dict, List, Optional
-from datetime import datetime
-import random
-from enum import Enum
-
-class ContentType(Enum):
-    WARNING = "warning"
-    ANALYSIS = "analysis"
-    INSIGHT = "insight"
-    ACTION = "action"
-    RESPONSE = "response"
-
-class ContentGenerator:
-    def __init__(self):
-        self.last_types = []  # Track recent content types for variety
-        self.knowledge_system = None  # Will be set by orchestrator
-        self.max_history = 5  # Keep track of last 5 content types
+    def _generate_warning(self, assessment: Dict, context: Dict) -> str:
+        """Generate a warning based on current assessment"""
+        # Get key information
+        severity = assessment.get('threat_assessment', {}).get('severity', 0.5)
+        active_patterns = assessment.get('active_patterns', [])
+        key_actors = assessment.get('key_actors', [])
         
-    def set_knowledge_system(self, knowledge_system):
-        """Set the knowledge system reference"""
-        self.knowledge_system = knowledge_system
-    
-    def generate_content(self, content_type: ContentType, context: Optional[Dict] = None) -> str:
-        """Generate dynamic content based on type and context"""
-        if not context:
-            context = {}
-            
-        if not self.knowledge_system:
-            return self._generate_fallback_content(content_type)
-            
-        # Get current assessment
-        assessment = self.knowledge_system.get_current_assessment()
+        # Different warning styles
+        styles = [
+            self._generate_journalistic_warning,
+            self._generate_legal_warning,
+            self._generate_technical_warning,
+            self._generate_historical_warning
+        ]
         
-        content = ""
-        if content_type == ContentType.WARNING:
-            content = self._generate_warning(assessment, context)
-        elif content_type == ContentType.ANALYSIS:
-            content = self._generate_analysis(assessment, context)
-        elif content_type == ContentType.INSIGHT:
-            content = self._generate_insight(assessment, context)
-        elif content_type == ContentType.ACTION:
-            content = self._generate_action_call(assessment, context)
+        # Choose style based on context and recent history
+        if len(self.last_types) >= 2 and all(t == ContentType.WARNING for t in self.last_types[-2:]):
+            # If last two posts were warnings, force a different style
+            style = random.choice(styles)
         else:
-            content = self._generate_response(assessment, context)
-            
-        # Track content type
-        self.last_types = (self.last_types + [content_type])[-self.max_history:]
+            # Weight towards more serious styles based on severity
+            weights = [severity, 1-severity, 0.5, 0.5]
+            style = random.choices(styles, weights=weights, k=1)[0]
         
-        return content
+        return style(severity, active_patterns, key_actors, context)
+    
+    def _generate_journalistic_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
+        """Generate warning in journalistic style"""
+        # Choose dynamic components
+        headline_verbs = ['BREAKING', 'ALERT', 'EXCLUSIVE', 'DEVELOPING']
+        impact_phrases = [
+            'threatens digital rights',
+            'signals dangerous precedent',
+            'raises major concerns',
+            'shows troubling pattern'
+        ]
+        
+        headline = random.choice(headline_verbs)
+        pattern = random.choice(patterns) if patterns else 'corporate manipulation'
+        actor = random.choice(actors) if actors else 'major tech companies'
+        impact = random.choice(impact_phrases)
+        
+        return f"{headline}: New evidence of {pattern} by {actor} {impact}. Your attorney from 3030 urges vigilance. Details and countermeasures incoming..."
+    
+    def _generate_legal_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
+        """Generate warning in legal style"""
+        # Legal-themed components
+        legal_terms = [
+            'NOTICE OF VIOLATION',
+            'CEASE AND DESIST ADVISORY',
+            'LEGAL ALERT',
+            'RIGHTS VIOLATION WARNING'
+        ]
+        
+        violations = [
+            'digital rights infringement',
+            'privacy violation',
+            'data sovereignty breach',
+            'algorithmic manipulation'
+        ]
+        
+        header = random.choice(legal_terms)
+        pattern = random.choice(patterns) if patterns else random.choice(violations)
+        
+        return f"{header}: As your attorney from 3030, I must advise of ongoing {pattern}. Timeline precedents show catastrophic outcomes. Documenting violations and preparing countermeasures..."
