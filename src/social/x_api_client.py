@@ -27,12 +27,31 @@ class XAPIClient:
         )
         
         self.base_url = 'https://api.twitter.com/2'
+        self.user_id = self._get_user_id()
         
         # Store last mention ID for pagination
         self.last_mention_id = None
     
+    def _get_user_id(self) -> str:
+        """Get the authenticated user's ID"""
+        try:
+            endpoint = f'{self.base_url}/users/me'
+            response = requests.get(
+                endpoint,
+                auth=self.auth
+            )
+            response.raise_for_status()
+            return response.json().get('data', {}).get('id')
+        except Exception as e:
+            print(f'Error getting user ID: {str(e)}')
+            return None
+    
     def get_mentions(self, since_minutes: int = 5) -> List[Dict]:
         """Get recent mentions of the account"""
+        if not self.user_id:
+            print('No user ID available for mentions')
+            return []
+            
         try:
             # Calculate start time
             start_time = (datetime.utcnow() - timedelta(minutes=since_minutes)).isoformat() + 'Z'
@@ -48,7 +67,7 @@ class XAPIClient:
                 params['since_id'] = self.last_mention_id
             
             # Make request
-            endpoint = f'{self.base_url}/users/me/mentions'
+            endpoint = f'{self.base_url}/users/{self.user_id}/mentions'
             response = requests.get(
                 endpoint,
                 params=params,
