@@ -1,105 +1,84 @@
-    def _is_relevant_phrase(self, phrase: str) -> bool:
-        """Check if a phrase is relevant for research"""
-        relevant_terms = [
-            'privacy', 'data', 'corporate', 'company', 'tech', 'government',
-            'surveillance', 'tracking', 'regulation', 'policy', 'control',
-            'manipulation', 'influence', 'power', 'rights', 'freedom',
-            'algorithm', 'ai', 'intelligence', 'social', 'media', 'platform',
-            'monopoly', 'antitrust', 'encryption', 'security', 'breach',
-            'hack', 'leak', 'scandal', 'protest', 'resistance', 'activism'
-        ]
-        
-        return any(term in phrase.lower() for term in relevant_terms)
-    
-    def _extract_topic_queries(self, text: str) -> List[str]:
-        """Extract topic queries when no clear phrases are found"""
-        # Basic topics that Gonzo cares about
-        base_topics = [
-            'corporate manipulation',
-            'privacy violations',
-            'data exploitation',
-            'surveillance practices',
-            'tech regulation',
-            'digital rights',
-            'algorithmic control',
-            'corporate influence',
-            'government overreach',
-            'resistance movements'
-        ]
-        
-        # Try to match text to relevant topics
-        matched_topics = []
-        for topic in base_topics:
-            if any(word in text.lower() for word in topic.split()):
-                matched_topics.append(topic)
-        
-        if matched_topics:
-            return [f"{topic} recent developments" for topic in matched_topics[:3]]
-        else:
-            # If no matches, use most relevant base topics
-            return [f"{topic} recent" for topic in base_topics[:3]]
-
-    def _analyze_research_results(self, results: List[Dict]) -> Dict[str, Any]:
-        """Analyze research results for patterns and insights"""
-        if not results:
-            return {
-                'key_findings': [],
-                'patterns': [],
-                'implications': [],
-                'credibility': 0.0
-            }
-        
-        # Extract key information
-        findings = []
-        patterns = set()
-        implications = set()
-        
-        for result in results:
-            # Extract finding
-            finding = {
-                'title': result.get('title', ''),
-                'summary': result.get('description', ''),
-                'relevance': result.get('significance', 0.5)
-            }
-            findings.append(finding)
+    def _determine_response_type(self, analysis: Dict) -> str:
+        """Determine the best type of response based on analysis"""
+        if not analysis.get('patterns') and not analysis.get('implications'):
+            return 'general'
             
-            # Look for patterns
-            text = f"{finding['title']} {finding['summary']}".lower()
-            self._extract_patterns(text, patterns)
-            self._extract_implications(text, implications)
+        patterns = analysis.get('patterns', [])
+        implications = analysis.get('implications', [])
         
-        # Calculate overall credibility
-        credibility = self._calculate_credibility(findings)
+        if 'corporate_control' in patterns or 'privacy_violation' in patterns:
+            return 'warning'
+        elif 'resistance' in patterns:
+            return 'supportive'
+        elif 'privacy_risk' in implications or 'control_increase' in implications:
+            return 'advisory'
+        else:
+            return 'informative'
+    
+    def _extract_key_points(self, analysis: Dict) -> List[str]:
+        """Extract key points for response"""
+        points = []
         
-        return {
-            'key_findings': sorted(findings, key=lambda x: x['relevance'], reverse=True)[:3],
-            'patterns': list(patterns),
-            'implications': list(implications),
-            'credibility': credibility
+        # Add key findings
+        for finding in analysis.get('key_findings', []):
+            if finding.get('title'):
+                points.append(finding['title'])
+        
+        # Add pattern insights
+        for pattern in analysis.get('patterns', []):
+            points.append(f"Pattern detected: {pattern.replace('_', ' ').title()}")
+        
+        # Add implications
+        for implication in analysis.get('implications', []):
+            points.append(f"Potential impact: {implication.replace('_', ' ').title()}")
+        
+        return points[:3]  # Limit to top 3 points
+    
+    def _determine_tone(self, analysis: Dict) -> str:
+        """Determine appropriate tone for response"""
+        patterns = analysis.get('patterns', [])
+        implications = analysis.get('implications', [])
+        
+        if 'privacy_risk' in implications or 'rights_reduction' in implications:
+            return 'urgent'
+        elif 'corporate_control' in patterns or 'manipulation' in patterns:
+            return 'warning'
+        elif 'resistance' in patterns or 'resistance_opportunity' in implications:
+            return 'encouraging'
+        else:
+            return 'informative'
+    
+    def _generate_action_items(self, analysis: Dict) -> List[str]:
+        """Generate actionable recommendations"""
+        actions = []
+        
+        # Map patterns to actions
+        pattern_actions = {
+            'corporate_control': [
+                'Support decentralized alternatives',
+                'Join anti-monopoly movements',
+                'Advocate for stronger regulations'
+            ],
+            'privacy_violation': [
+                'Use privacy-focused services',
+                'Encrypt your communications',
+                'Opt out of data collection'
+            ],
+            'manipulation': [
+                'Diversify information sources',
+                'Use content blockers',
+                'Support independent platforms'
+            ],
+            'resistance': [
+                'Join digital rights groups',
+                'Support grassroots movements',
+                'Share knowledge with others'
+            ]
         }
-
-    def _extract_patterns(self, text: str, patterns: set):
-        """Extract patterns from text"""
-        pattern_indicators = {
-            'corporate_control': ['acquisition', 'merger', 'market share', 'dominance'],
-            'privacy_violation': ['data collection', 'tracking', 'surveillance'],
-            'manipulation': ['algorithm change', 'content moderation', 'targeted'],
-            'resistance': ['protest', 'boycott', 'alternative', 'decentralized']
-        }
         
-        for pattern, indicators in pattern_indicators.items():
-            if any(indicator in text for indicator in indicators):
-                patterns.add(pattern)
-
-    def _extract_implications(self, text: str, implications: set):
-        """Extract potential implications from text"""
-        implication_indicators = {
-            'privacy_risk': ['expose', 'vulnerable', 'compromise', 'risk'],
-            'control_increase': ['expand', 'growth', 'increase', 'more'],
-            'rights_reduction': ['limit', 'restrict', 'reduce', 'prevent'],
-            'resistance_opportunity': ['alternative', 'solution', 'protect', 'secure']
-        }
+        # Add relevant actions based on patterns
+        for pattern in analysis.get('patterns', []):
+            if pattern in pattern_actions:
+                actions.extend(pattern_actions[pattern])
         
-        for implication, indicators in implication_indicators.items():
-            if any(indicator in text for indicator in indicators):
-                implications.add(implication)
+        return list(set(actions))[:3]  # Remove duplicates and limit to top 3
