@@ -83,8 +83,21 @@ class GonzoLauncher:
             self.x_system.safety_manager.log_api_error('CRITICAL_ERROR', str(e))
             raise
         finally:
-            print("\n🛑 Shutting down Gonzo-3030...")
-            await self.orchestrator.process_input({"type": "system_shutdown", "content": "Emergency shutdown initiated"})
+            await self._shutdown()
+            
+    async def _shutdown(self, timeout: int = 5):
+        """Perform shutdown with timeout"""
+        print("\n🛑 Shutting down Gonzo-3030...")
+        try:
+            # Set a timeout for the shutdown process
+            shutdown_task = self.orchestrator.process_input({"type": "system_shutdown", "content": "Emergency shutdown initiated"})
+            await asyncio.wait_for(shutdown_task, timeout=timeout)
+        except asyncio.TimeoutError:
+            print("Shutdown timed out, forcing exit...")
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+        finally:
+            print("📴 Gonzo-3030 offline")
     
     async def handle_mention(self, mention: Dict):
         """Handle a mention or interaction"""
@@ -135,8 +148,9 @@ class GonzoLauncher:
     
     def shutdown(self):
         """Trigger a clean shutdown"""
-        print("\n🚨 Initiating shutdown sequence...")
-        self.shutdown_event.set()
+        if not self.shutdown_event.is_set():
+            print("\n🚨 Initiating shutdown sequence...")
+            self.shutdown_event.set()
 
 def handle_shutdown(signum, frame):
     """Handle shutdown signals"""
@@ -173,5 +187,9 @@ if __name__ == "__main__":
     loop.launcher = launcher  # Store reference for signal handler
     try:
         loop.run_until_complete(launcher.launch())
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
     finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+        print("📴 Process terminated")
