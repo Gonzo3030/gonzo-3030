@@ -1,40 +1,53 @@
-    def _generate_technical_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
-        """Generate warning in technical/analytical style"""
-        # Technical components
-        status_levels = ['CRITICAL', 'HIGH ALERT', 'WARNING', 'ADVISORY']
-        metrics = ['Risk Level', 'Timeline Corruption', 'Pattern Match', 'Threat Level']
+    def _generate_analysis(self, assessment: Dict, context: Dict) -> str:
+        """Generate detailed analysis of current situation"""
+        trends = assessment.get('threat_assessment', {}).get('trends', [])
+        emerging_threats = assessment.get('threat_assessment', {}).get('emerging_threats', [])
         
-        # Convert severity to percentage
-        risk_percentage = int(severity * 100)
+        # Different analysis styles
+        analysis_types = [
+            self._generate_pattern_analysis,
+            self._generate_impact_analysis,
+            self._generate_strategic_analysis
+        ]
         
-        # Get pattern and create technical ID
-        pattern = random.choice(patterns) if patterns else 'manipulation pattern'
-        pattern_id = f"PTN-{hash(pattern) % 10000:04d}"
-        
-        status = status_levels[0] if severity > 0.8 else status_levels[1] if severity > 0.6 else status_levels[2]
-        metric = random.choice(metrics)
-        
-        return f"TECHNICAL {status}\nPattern ID: {pattern_id}\n{metric}: {risk_percentage}%\nDetected: {pattern}\nYour attorney from 3030 recommends immediate countermeasures."
+        # Choose analysis type
+        analysis_func = random.choice(analysis_types)
+        return analysis_func(trends, emerging_threats, context)
     
-    def _generate_historical_warning(self, severity: float, patterns: List[str], actors: List[str], context: Dict) -> str:
-        """Generate warning with historical perspective"""
-        # Historical references
-        historical_intros = [
-            "I've seen this before...",
-            "Timeline analysis reveals...",
-            "History repeats itself:",
-            "From the archives of 3030:"
+    def _generate_pattern_analysis(self, trends: List[str], threats: List[str], context: Dict) -> str:
+        """Generate analysis focusing on patterns"""
+        trend = random.choice(trends) if trends else 'ongoing manipulation'
+        threat = random.choice(threats) if threats else 'emerging control mechanisms'
+        
+        patterns = [
+            f"Pattern analysis reveals: {trend} represents an escalation in corporate control tactics.",
+            f"Connecting the dots: {trend} directly enables {threat}.",
+            f"Your attorney's analysis: {trend} is a precursor to {threat}. Similar patterns preceded total control in 3030."
         ]
         
-        consequences = [
-            "led to massive data exploitation",
-            "resulted in widespread manipulation",
-            "caused irreversible timeline damage",
-            "enabled total corporate control"
+        return random.choice(patterns)
+    
+    def _generate_impact_analysis(self, trends: List[str], threats: List[str], context: Dict) -> str:
+        """Generate analysis focusing on potential impacts"""
+        trend = random.choice(trends) if trends else 'current developments'
+        
+        impacts = [
+            f"Impact assessment: {trend} will fundamentally alter the balance of power. Timeline projections show increased corporate influence over personal autonomy.",
+            f"Critical analysis: The true cost of {trend} isn't financial - it's the erosion of individual agency. Your attorney has seen this playbook before.",
+            f"Analyzing timeline implications: {trend} creates precedents that enable systemic control. We must act while resistance is still possible."
         ]
         
-        intro = random.choice(historical_intros)
-        pattern = random.choice(patterns) if patterns else 'these patterns'
-        consequence = random.choice(consequences)
+        return random.choice(impacts)
+    
+    def _generate_strategic_analysis(self, trends: List[str], threats: List[str], context: Dict) -> str:
+        """Generate analysis focusing on strategic implications"""
+        trend = random.choice(trends) if trends else 'current tactics'
+        threat = random.choice(threats) if threats else 'control mechanisms'
         
-        return f"{intro} In my timeline, {pattern} {consequence}. As your attorney from 3030, I must warn: we're seeing the same signs. We can still prevent this future."
+        strategies = [
+            f"Strategic assessment: {trend} isn't isolated - it's part of a coordinated effort to expand {threat}. Your attorney recommends immediate counter-action.",
+            f"Timeline strategy brief: {trend} creates vulnerabilities that enable {threat}. We must address root causes, not just symptoms.",
+            f"From your attorney's case files: {trend} matches patterns that preceded systemic control in 3030. Key difference: you still have time to act."
+        ]
+        
+        return random.choice(strategies)
