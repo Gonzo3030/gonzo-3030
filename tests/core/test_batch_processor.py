@@ -86,3 +86,46 @@ async def test_similarity_grouping(batch_processor, mock_embedding_processor):
     assert len(grouped_events) > 0
     # Events should be grouped together due to similarity
     assert any(len(group) == 2 for group in grouped_events)
+
+@pytest.mark.asyncio
+async def test_batch_monitoring(batch_processor):
+    """Test monitoring of pending batches."""
+    old_event = {
+        'id': '1',
+        'content': 'Old event',
+        'timestamp': asyncio.get_event_loop().time() - 100
+    }
+    
+    await batch_processor.add_event(old_event, 'test_category')
+    
+    # Run monitoring for one cycle
+    with patch.object(batch_processor, 'process_batch') as mock_process:
+        await batch_processor.monitor_pending_batches()
+        assert mock_process.called
+
+@pytest.mark.asyncio
+async def test_checkpoint_integration(batch_processor):
+    """Test integration with checkpoint system."""
+    events = [{'id': '1', 'content': 'Test event'}]
+    
+    with patch.object(batch_processor, '_save_checkpoint') as mock_save:
+        checkpoint_id = await batch_processor._create_checkpoint(events)
+        
+        assert checkpoint_id is not None
+        assert mock_save.called
+        
+        checkpoint_data = mock_save.call_args[0][1]
+        assert 'events' in checkpoint_data
+        assert 'timestamp' in checkpoint_data
+        assert checkpoint_data['status'] == 'pending'
+
+@pytest.mark.asyncio
+async def test_batch_similarity_calculation(batch_processor, mock_embedding_processor):
+    """Test similarity calculation for batched events."""
+    events = [
+        {'content': 'First AI news', 'embedding': [0.1, 0.2]},
+        {'content': 'Second AI news', 'embedding': [0.15, 0.25]}
+    ]
+    
+    similarity = await batch_processor._calculate_batch_similarity([events])
+    assert 0 <= similarity <= 1  # Similarity should be normalized
