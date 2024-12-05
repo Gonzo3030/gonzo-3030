@@ -64,5 +64,38 @@ class GonzoState(BaseModel):
         description="Message handling state"
     )
     
+    def start_run(self, name: str, run_type: str = "chain") -> None:
+        """Start a new LangSmith run for tracking."""
+        if self.run_state["run_tree"] is not None:
+            self.run_state["parent_run_id"] = self.run_state["run_id"]
+        
+        # Create new run tree if needed
+        self.run_state["run_tree"] = RunTree(
+            name=name,
+            run_type=run_type,
+            inputs={},
+            outputs={}
+        )
+        self.run_state["run_id"] = self.run_state["run_tree"].id
+    
+    def end_run(self, outputs: Dict[str, Any]) -> None:
+        """End the current LangSmith run with outputs."""
+        if self.run_state["run_tree"] is not None:
+            self.run_state["run_tree"].end(outputs=outputs)
+            
+            if self.run_state["parent_run_id"]:
+                self.run_state["run_id"] = self.run_state["parent_run_id"]
+                self.run_state["parent_run_id"] = None
+    
+    def log_step(self, step_name: str, inputs: Dict[str, Any], outputs: Dict[str, Any]) -> None:
+        """Log a step within the current run."""
+        if self.run_state["run_tree"] is not None:
+            self.run_state["run_tree"].add_child(
+                name=step_name,
+                run_type="chain",
+                inputs=inputs,
+                outputs=outputs
+            )
+    
     class Config:
         arbitrary_types_allowed = True
