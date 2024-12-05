@@ -90,7 +90,7 @@ async def test_graph_flow():
     final_state = await graph.arun(
         state,
         name="test_flow",
-        project="gonzo_test"
+        project="gonzo-langgraph"
     )
     
     # Assertions
