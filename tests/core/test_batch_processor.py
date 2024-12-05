@@ -51,3 +51,38 @@ async def test_batch_threshold_processing(batch_processor):
     with patch.object(batch_processor, '_create_checkpoint') as mock_checkpoint:
         await batch_processor.add_event(events[-1], 'test_category')
         assert mock_checkpoint.called
+
+@pytest.mark.asyncio
+async def test_batch_creation(batch_processor):
+    """Test batch creation and metadata."""
+    events = [
+        {'id': '1', 'content': 'First test event'},
+        {'id': '2', 'content': 'Second test event'}
+    ]
+    
+    for event in events:
+        await batch_processor.add_event(event, 'test_category')
+        
+    batch = await batch_processor.process_batch('test_category')
+    assert isinstance(batch, EventBatch)
+    assert batch.batch_id.startswith('batch_test_category_')
+    assert batch.checkpoint_id is not None
+
+@pytest.mark.asyncio
+async def test_empty_category_handling(batch_processor):
+    """Test handling of empty event categories."""
+    result = await batch_processor.process_batch('nonexistent_category')
+    assert result is None
+
+@pytest.mark.asyncio
+async def test_similarity_grouping(batch_processor, mock_embedding_processor):
+    """Test event grouping based on similarity."""
+    events = [
+        {'id': '1', 'content': 'AI technology news'},
+        {'id': '2', 'content': 'Latest AI developments'}
+    ]
+    
+    grouped_events = await batch_processor._group_similar_events(events)
+    assert len(grouped_events) > 0
+    # Events should be grouped together due to similarity
+    assert any(len(group) == 2 for group in grouped_events)
