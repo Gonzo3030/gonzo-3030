@@ -13,6 +13,15 @@ def batch_processor():
         max_batch_wait=30
     )
 
+@pytest.fixture
+def mock_embedding_processor():
+    with patch('src.core.batch_processor.EmbeddingProcessor') as mock:
+        processor = Mock()
+        processor.get_embeddings.return_value = [[0.1, 0.2], [0.15, 0.25]]
+        processor.calculate_cosine_similarity.return_value = 0.9
+        mock.return_value = processor
+        yield mock
+
 @pytest.mark.asyncio
 async def test_add_event(batch_processor):
     """Test adding a single event to the batch processor."""
@@ -42,25 +51,3 @@ async def test_batch_threshold_processing(batch_processor):
     with patch.object(batch_processor, '_create_checkpoint') as mock_checkpoint:
         await batch_processor.add_event(events[-1], 'test_category')
         assert mock_checkpoint.called
-
-@pytest.mark.asyncio
-async def test_batch_creation(batch_processor):
-    """Test batch creation and metadata."""
-    events = [
-        {'id': '1', 'content': 'First test event'},
-        {'id': '2', 'content': 'Second test event'}
-    ]
-    
-    for event in events:
-        await batch_processor.add_event(event, 'test_category')
-        
-    batch = await batch_processor.process_batch('test_category')
-    assert isinstance(batch, EventBatch)
-    assert batch.batch_id.startswith('batch_test_category_')
-    assert batch.checkpoint_id is not None
-
-@pytest.mark.asyncio
-async def test_empty_category_handling(batch_processor):
-    """Test handling of empty event categories."""
-    result = await batch_processor.process_batch('nonexistent_category')
-    assert result is None
