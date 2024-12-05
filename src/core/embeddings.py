@@ -31,3 +31,28 @@ class EmbeddingProcessor:
             return 0.0
             
         return dot_product / (norm1 * norm2)
+        
+    async def calculate_group_similarity(self, events: List[Dict[Any, Any]]) -> List[float]:
+        """Calculate pairwise similarities between all events in a group."""
+        if len(events) < 2:
+            return []
+            
+        embeddings = [event.get("embedding", [0.0] * 1536) for event in events]
+        similarities = []
+        
+        for i in range(len(embeddings)):
+            for j in range(i + 1, len(embeddings)):
+                similarity = self.calculate_cosine_similarity(embeddings[i], embeddings[j])
+                similarities.append(similarity)
+                
+        return similarities
+        
+    async def batch_process_embeddings(self, events: List[Dict[Any, Any]]) -> List[Dict[Any, Any]]:
+        """Process embeddings for a batch of events."""
+        texts = [str(event.get('content', '')) for event in events]
+        embeddings = await self.get_embeddings(texts)
+        
+        for event, embedding in zip(events, embeddings):
+            event['embedding'] = embedding
+            
+        return events
