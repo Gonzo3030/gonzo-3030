@@ -97,5 +97,46 @@ class GonzoState(BaseModel):
                 outputs=outputs
             )
     
+    def transition_to(self, next_step: str) -> None:
+        """Transition the graph to a new state."""
+        self.next_step = next_step
+        self.message_state["next_step"] = next_step
+        
+        # Log the transition in LangSmith
+        self.log_step(
+            "state_transition",
+            {"from": self.next_step},
+            {"to": next_step}
+        )
+    
+    def add_message(self, message: BaseMessage) -> None:
+        """Add a message to the state."""
+        self.message_state["messages"].append(message)
+    
+    def get_messages(self) -> List[BaseMessage]:
+        """Get all messages in the current state."""
+        return self.message_state["messages"]
+    
+    def update_batch(self, batch: Dict[str, Any]) -> None:
+        """Update the current batch being processed."""
+        self.current_batch = batch
+        self.log_step(
+            "batch_update",
+            {"previous_batch": self.current_batch},
+            {"new_batch": batch}
+        )
+    
+    def save_to_memory(self, key: str, value: Any) -> None:
+        """Save data to long-term memory."""
+        self.memory[key] = {
+            'value': value,
+            'timestamp': datetime.now().isoformat()
+        }
+        self.log_step(
+            "memory_save",
+            {"key": key},
+            {"value": value}
+        )
+    
     class Config:
         arbitrary_types_allowed = True
