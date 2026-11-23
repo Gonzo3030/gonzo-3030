@@ -1,0 +1,17 @@
+name: Schedule probe
+
+# Temporary. Tests whether scheduled triggers fire here. Prints the time, nothing else.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "event=${{ github.event_name }} at $(date -u +%FT%TZ)"
